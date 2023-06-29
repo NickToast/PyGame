@@ -1,6 +1,6 @@
 import pygame
 from sys import exit
-from random import randint
+from random import randint, choice
 
 class Player(pygame.sprite.Sprite): #inherits from another class
     def __init__(self):
@@ -45,8 +45,36 @@ class Obstacle(pygame.sprite.Sprite):
     def __init__(self, type): #type is fly or snail
         super().__init__()
         
-        self.image
-        self.rect
+        if type == 'fly':
+            fly_1 = pygame.image.load('graphics/enemies/fly/Fly1.png').convert_alpha()
+            fly_2 = pygame.image.load('graphics/enemies/fly/Fly2.png').convert_alpha()
+            self.frames = [fly_1, fly_2]
+            y_pos = 210
+        else:
+            snail_1 = pygame.image.load('graphics/enemies/snail/snail1.png').convert_alpha()
+            snail_2 = pygame.image.load('graphics/enemies/snail/snail2.png').convert_alpha()
+            self.frames = [snail_1, snail_2]
+            y_pos = 300
+
+        self.animation_index = 0
+
+        self.image = self.frames[self.animation_index]
+        self.rect = self.image.get_rect(midbottom = (randint(900,1100), y_pos))
+
+    def animation_state(self):
+        self.animation_index += 0.1
+        if self.animation_index >= len(self.frames):
+            self.animation_index = 0
+        self.image = self.frames[int(self.animation_index)]
+
+    def update(self):
+        self.animation_state()
+        self.rect.x -= 6
+        self.destroy()
+    
+    def destroy(self):
+        if self.rect.x <= -100:
+            self.kill() #destroys this obstacle sprite
 
 
 def display_score():
@@ -83,6 +111,17 @@ def collisions(player, obstacles):
                 #local scope: game_active is in the global scope, local to global scope --> return statement
     return True
 
+def collision_sprite():
+    if pygame.sprite.spritecollide(player.sprite, obstacle_group, False): #3 arguments: sprite, group, boolean
+        obstacle_group.empty()
+        return False
+    else:
+        return True
+    #if set to true, if snail collides with player, snail deleted, if false snail will NOT be deleted
+    #returns a list, if it doesn't collect anything, returns empty list
+    
+
+
 def player_animation():
     global player_surface, player_index
     #play walking animation if the player is on floor
@@ -113,6 +152,7 @@ score = 0
 player = pygame.sprite.GroupSingle()
 player.add(Player()) #add an instance of our player into our group
 
+obstacle_group = pygame.sprite.Group()
 
 # testing adding surfaces to display surface
 # test_surface = pygame.Surface((100,200))
@@ -193,11 +233,11 @@ while True:
                 if event.key == pygame.K_SPACE and player_rect.bottom >= 300:
                     player_gravity = -20
             if event.type == obstacle_timer:
-                #
-                if randint(0,2): #returns either 0 or 1, 0 for False, 1 for True
-                    obstacle_rect_list.append(snail_surf.get_rect(midbottom = (randint(900,1100), 300)))
-                else: 
-                    obstacle_rect_list.append(fly_surf.get_rect(midbottom = (randint(900,1100), 210)))
+                obstacle_group.add(Obstacle(choice(['fly', 'snail', 'snail', 'snail']))) #this choice method will choose one of these 4 items, percentage 75% chance to get snail, 25% chance to get fly
+                # if randint(0,2): #returns either 0 or 1, 0 for False, 1 for True
+                #     obstacle_rect_list.append(snail_surf.get_rect(midbottom = (randint(900,1100), 300)))
+                # else: 
+                #     obstacle_rect_list.append(fly_surf.get_rect(midbottom = (randint(900,1100), 210)))
                 #randint from random module gets a random integer from two numbers and we can use that to give variety to our spawn location
                 #creates our list, but we need the list to move
             if event.type == snail_animation_timer:
@@ -239,21 +279,25 @@ while True:
         # player_rect.left += 1 ; moves the rectangle that contains the surface
 
         #PLAYER CODE
-        player_gravity += 1
-        player_rect.y += player_gravity
-        if player_rect.bottom >= 300:
-            player_rect.bottom = 300
-        player_animation()
-        screen.blit(player_surface, player_rect)
+        # player_gravity += 1
+        # player_rect.y += player_gravity
+        # if player_rect.bottom >= 300:
+        #     player_rect.bottom = 300
+        # player_animation()
+        # screen.blit(player_surface, player_rect)
+
         player.draw(screen)
         player.update()
 
+        obstacle_group.draw(screen)
+        obstacle_group.update()
+
         #OBSTACLE MOVEMENT
-        obstacle_rect_list = obstacle_movement(obstacle_rect_list)
+        # obstacle_rect_list = obstacle_movement(obstacle_rect_list)
         #runs the function, takes obstacle rect list, a bit further to the left, then we take this new list, to overwrite the list
 
         #COLLISIONS
-        game_active = collisions(player_rect, obstacle_rect_list)
+        game_active = collision_sprite()
         #this collisions returns True or False, if our player_rect has a collision with obstacle, returns False, and therefore makes
         #game_active False, going to else statement
 
